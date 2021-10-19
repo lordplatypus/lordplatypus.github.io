@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Game</title>
+	</head>
+	<body>
+		<canvas id="main_canvas" width="480px" height="320px"></canvas>
+		<div id="main_view"></div>
+		<input id="file_input" type="file">
+		<input id="column_input" type="number" value="4">Columns</input>
+		<input id="row_input" type="number" value="4">Rows</input>
+        <button id="shuffle_button" type="button">Shuffle</button>
+		<script src="./functions.js"></script>
+		<script src="./object.js"></script>
+		<script type="text/javascript">
+
+			// function $(id)
+			// {
+			// 	return document.getElementById(id);
+			// }
+
+
+			// var object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, ID)
+			// {
+			// 	this.image_ = image; //image object
+			// 	this.positionX_ = positionX; //world position x
+			// 	this.positionY_ = positionY; //world position y
+			// 	this.width_ = width; //width of the world object
+			// 	this.height_ = height; //height of the world object
+			// 	this.textureX_ = textureX; //texture position x (where to make the cutout)
+			// 	this.textureY_ = textureY; //texture position y
+			// 	this.textureWidth_ = textureWidth; //width of the texture cutout
+			// 	this.textureHeight_ = textureHeight; //height of the texture cutout
+			// 	this.ID_ = ID; //number ID - this correlates to its correct position (i.e. 0 = top left corner, 1 = one position to the right, etc)
+			// }
+
+			// object.prototype.Translate = function(positionX, positionY)
+			// {//Updates the 'image cutout' position
+			// 	this.positionX_ = positionX;
+			// 	this.positionY_ = positionY;
+			// }
+
+			// object.prototype.Draw = function(ctx)
+			// {//Draw the 'image cutout' on the canvas
+			// 	ctx.drawImage(this.image_, this.textureX_, this.textureY_, this.textureWidth_, this.textureHeight_, 
+			// 							   this.positionX_, this.positionY_, this.width_, this.height_);
+			// }
+
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			///Global Variables
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			var image_; //image object
+			var textureWidth_; //width of the texture, doesn't change
+			var textureHeight_; //height of the texture, doesn't change
+			var imageWidth_; //width of the image, after scaling
+			var imageHeight_; //height of the image, after scaling
+			var boxWidth_; //width of the individual image boxes (imageWidth_ / columns_)
+			var boxHeight_; //height of the individual image boxes (imageHeight_ / rows_)
+			var columns_ = 4;
+			var rows_ = 4;
+			var boxes_ = [];
+			var boxNum_ = 0;
+
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			///Init
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			window.onload = function ()
+			{
+				Update();
+
+				var el = $("main_canvas");
+				el.addEventListener("touchstart", TouchStart, false);
+				el.addEventListener("touchmove", TouchMove, false);
+				el.addEventListener("touchend", TouchEnd, false);
+				//el.addEventListener("touchcancel", handleCancel, false);
+			}
+
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			///Inputs
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			input = document.querySelector("#file_input");
+            input.addEventListener('change', function()
+			{
+				renderImage(this.files[0])
+			});
+
+			function renderImage(file) 
+            {
+                //generate a new FileReader object
+                var reader = new FileReader();
+
+                reader.onload = function(event) 
+                {//get the data url and 
+                    imagePath = event.target.result
+					LoadImage(imagePath);
+                }
+
+                //when the file is read it triggers the onload event above.
+                reader.readAsDataURL(file);
+            }
+
+			column_input = document.querySelector("#column_input");
+            column_input.addEventListener("change", function()
+            {
+				columns_ = column_input.value;
+            });
+
+			row_input = document.querySelector("#row_input");
+            row_input.addEventListener("change", function()
+            {
+				rows_ = row_input.value;
+            });
+
+			shuffle_button = document.querySelector("#shuffle_button");
+            shuffle_button.addEventListener("click", function()
+            {
+				$('main_canvas').width = imageWidth_;
+				$('main_canvas').height = imageHeight_;
+				Clear();
+				SetBoxes();
+				Shuffle();
+            });
+
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			///Game Functions
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			function LoadImage(imagePath)
+			{
+				image_ = new Image();
+				image_.src = imagePath;
+				image_.onload = function()
+				{
+					textureWidth_ = image_.naturalWidth;
+					textureHeight_ = image_.naturalHeight;
+					imageWidth_ = textureWidth_;
+					imageHeight_ = textureHeight_; 
+
+					if (window.innerWidth < textureWidth_ || window.innerHeight < textureHeight_) 
+					{
+						if (window.innerWidth <= window.innerHeight)
+						{
+							imageWidth_ = window.innerWidth;
+							imageHeight_ = Math.floor(textureHeight_ / (textureWidth_ / imageWidth_));
+						}
+						else
+						{
+							imageHeight_ = window.innerHeight;
+							imageWidth_ = Math.floor(textureWidth_ / (textureHeight_ / imageHeight_));
+						}
+					}
+
+					console.log(imageWidth_);
+					console.log(imageHeight_);
+				}
+			}
+
+			function SetBoxSize()
+			{
+				boxWidth_ = Math.floor(imageWidth_ / columns_);
+				boxHeight_ = Math.floor(imageHeight_ / rows_);
+			}
+
+			function Clear()
+			{
+				boxes_ = [];
+				boxNum_ = 0;
+			}
+
+			function SetBoxes()
+			{
+				SetBoxSize();
+
+				for (var x = 0; x < columns_; x++)
+				{
+					for (var y = 0; y < rows_; y++)
+					{
+						boxes_[boxNum_] = new object(image_, boxWidth_*x, boxHeight_*y, boxWidth_, boxHeight_, 
+													 textureWidth_/columns_*x, textureHeight_/rows_*y, textureWidth_/columns_, textureHeight_/rows_, boxNum_);
+						if (x === columns_ - 1 && y === rows_ - 1) break;
+						boxNum_++;
+					}
+				}
+			}
+
+			function Shuffle()
+			{
+				for (var i = 0; i < 100 * columns_ * rows_; i++)
+				{
+					var targetID = -1;
+					var rand = Math.floor(Math.random() * 4);
+					switch (rand)
+					{
+						case 0:
+						targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ + boxHeight_);
+						break;
+
+						case 1:
+						targetID = Search(boxes_[boxNum_].positionX_ + boxWidth_, boxes_[boxNum_].positionY_);
+						break;
+
+						case 2:
+						targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ - boxHeight_);
+						break;
+
+						case 3:
+						targetID = Search(boxes_[boxNum_].positionX_ - boxWidth_, boxes_[boxNum_].positionY_);
+						break;
+					}
+
+					if (targetID === -1) continue;
+					var tempX = boxes_[boxNum_].positionX_;
+					var tempY = boxes_[boxNum_].positionY_;
+					boxes_[boxNum_].Translate(boxes_[targetID].positionX_, boxes_[targetID].positionY_);
+					boxes_[targetID].Translate(tempX, tempY);
+				}
+			}
+
+			function Search(positionX, positionY)
+			{
+				for (var i = 0; i < boxes_.length; i++)
+				{
+					if (boxes_[i].positionX_ === positionX && boxes_[i].positionY_ === positionY) return i;
+				}
+				return -1;
+			}
+
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			///Game Update
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			function Update()
+			{
+				var ctx = $('main_canvas').getContext("2d");
+				ctx.fillStyle = "#ff0000";
+				ctx.fillRect(0, 0, imageWidth_, imageHeight_);
+				
+				for (var i = 0; i < boxes_.length - 1; i++)
+				{
+					boxes_[i].Draw(ctx);
+				}
+
+				var t = setTimeout(Update, 16);
+			}
+
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			///Key and Touch Inputs
+			////////////////////////////////////////////////////////////////////////////////////////////////////
+			window.addEventListener("keydown", KeyDown, false);
+			function KeyDown(inputEvent)
+			{
+				var targetID = -1;
+				if (inputEvent.key == "w" || inputEvent.key == "i")
+				{
+					targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ + boxHeight_);
+				}
+				else if (inputEvent.key == "a" || inputEvent.key == "j")
+				{
+					targetID = Search(boxes_[boxNum_].positionX_ + boxWidth_, boxes_[boxNum_].positionY_);
+				}
+				else if (inputEvent.key == "s" || inputEvent.key == "k")
+				{
+					targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ - boxHeight_);
+				}
+				else if (inputEvent.key == "d" || inputEvent.key == "l")
+				{
+					targetID = Search(boxes_[boxNum_].positionX_ - boxWidth_, boxes_[boxNum_].positionY_);
+				}
+
+				if (targetID === -1) return;
+				var tempX = boxes_[boxNum_].positionX_;
+				var tempY = boxes_[boxNum_].positionY_;
+				boxes_[boxNum_].Translate(boxes_[targetID].positionX_, boxes_[targetID].positionY_);
+				boxes_[targetID].Translate(tempX, tempY);
+			}
+
+			var touchX_;
+			var touchY_;
+			function TouchStart(event) 
+			{
+				event.preventDefault();
+				var touch = event.changedTouches[0];
+				touchX_ = touch.pageX;
+				touchY_ = touch.pageY;
+			}
+
+			function TouchMove(event) 
+			{
+				event.preventDefault();
+			}
+
+			function TouchEnd(event)
+			{
+				event.preventDefault();
+				var touch = event.changedTouches[0];
+				var touchEndX_ = touch.pageX;
+				var touchEndY_ = touch.pageY;
+				var distanceX = touchX_ - touchEndX_;
+				var distanceY = touchY_ - touchEndY_;
+
+				var targetID = -1;
+				if (Math.abs(distanceX) >= Math.abs(distanceY))
+				{
+					if (distanceX >= 0) targetID = Search(boxes_[boxNum_].positionX_ + boxWidth_, boxes_[boxNum_].positionY_);//move left
+					else targetID = Search(boxes_[boxNum_].positionX_ - boxWidth_, boxes_[boxNum_].positionY_);//moved right
+				}
+				else
+				{
+					if (distanceY >= 0) targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ + boxHeight_);//move up
+					else targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ - boxHeight_);//moved down
+				}
+				if (targetID === -1) return;
+				var tempX = boxes_[boxNum_].positionX_;
+				var tempY = boxes_[boxNum_].positionY_;
+				boxes_[boxNum_].Translate(boxes_[targetID].positionX_, boxes_[targetID].positionY_);
+				boxes_[targetID].Translate(tempX, tempY);
+			}
+
+		</script>
+    </body>
+</html>
