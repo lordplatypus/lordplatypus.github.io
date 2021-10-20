@@ -10,46 +10,18 @@
 		<input id="file_input" type="file">
 		<input id="column_input" type="number" value="4">Columns</input>
 		<input id="row_input" type="number" value="4">Rows</input>
+		<input id="num_display_input" type="checkbox" value="false">Display Numbers?</input>
+		<input id="outline_display_input" type="checkbox" value="false">Display Outlines?</input>
         <button id="shuffle_button" type="button">Shuffle</button>
 		<script src="./functions.js"></script>
 		<script src="./object.js"></script>
+		<script src="./manager.js"></script>
 		<script type="text/javascript">
-
-			// function $(id)
-			// {
-			// 	return document.getElementById(id);
-			// }
-
-
-			// var object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, ID)
-			// {
-			// 	this.image_ = image; //image object
-			// 	this.positionX_ = positionX; //world position x
-			// 	this.positionY_ = positionY; //world position y
-			// 	this.width_ = width; //width of the world object
-			// 	this.height_ = height; //height of the world object
-			// 	this.textureX_ = textureX; //texture position x (where to make the cutout)
-			// 	this.textureY_ = textureY; //texture position y
-			// 	this.textureWidth_ = textureWidth; //width of the texture cutout
-			// 	this.textureHeight_ = textureHeight; //height of the texture cutout
-			// 	this.ID_ = ID; //number ID - this correlates to its correct position (i.e. 0 = top left corner, 1 = one position to the right, etc)
-			// }
-
-			// object.prototype.Translate = function(positionX, positionY)
-			// {//Updates the 'image cutout' position
-			// 	this.positionX_ = positionX;
-			// 	this.positionY_ = positionY;
-			// }
-
-			// object.prototype.Draw = function(ctx)
-			// {//Draw the 'image cutout' on the canvas
-			// 	ctx.drawImage(this.image_, this.textureX_, this.textureY_, this.textureWidth_, this.textureHeight_, 
-			// 							   this.positionX_, this.positionY_, this.width_, this.height_);
-			// }
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Global Variables
 			////////////////////////////////////////////////////////////////////////////////////////////////////
+			var manager_ = new manager(); //Object Manager
 			var image_; //image object
 			var textureWidth_; //width of the texture, doesn't change
 			var textureHeight_; //height of the texture, doesn't change
@@ -59,7 +31,6 @@
 			var boxHeight_; //height of the individual image boxes (imageHeight_ / rows_)
 			var columns_ = 4;
 			var rows_ = 4;
-			var boxes_ = [];
 			var boxNum_ = 0;
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,13 +38,13 @@
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			window.onload = function ()
 			{
-				Update();
-
 				var el = $("main_canvas");
 				el.addEventListener("touchstart", TouchStart, false);
 				el.addEventListener("touchmove", TouchMove, false);
 				el.addEventListener("touchend", TouchEnd, false);
 				//el.addEventListener("touchcancel", handleCancel, false);
+
+				Main();
 			}
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,6 +81,18 @@
             row_input.addEventListener("change", function()
             {
 				rows_ = row_input.value;
+            });
+
+			num_display_input = document.querySelector("#num_display_input");
+            num_display_input.addEventListener("change", function()
+            {
+				manager_.DisplayNumbers(num_display_input.value);
+            });
+
+			outline_display_input = document.querySelector("#outline_display_input");
+            outline_display_input.addEventListener("change", function()
+            {
+				manager_.DisplayOutlines(outline_display_input.value);
             });
 
 			shuffle_button = document.querySelector("#shuffle_button");
@@ -163,7 +146,7 @@
 
 			function Clear()
 			{
-				boxes_ = [];
+				manager_.Clear();
 				boxNum_ = 0;
 			}
 
@@ -171,75 +154,92 @@
 			{
 				SetBoxSize();
 
-				for (var x = 0; x < columns_; x++)
+				for (var y = 0; y < rows_; y++)
 				{
-					for (var y = 0; y < rows_; y++)
+					for (var x = 0; x < columns_; x++)
 					{
-						boxes_[boxNum_] = new object(image_, boxWidth_*x, boxHeight_*y, boxWidth_, boxHeight_, 
-													 textureWidth_/columns_*x, textureHeight_/rows_*y, textureWidth_/columns_, textureHeight_/rows_, boxNum_);
+						manager_.Add(new object(image_, boxWidth_*x, boxHeight_*y, boxWidth_, boxHeight_, 
+						 	textureWidth_/columns_*x, textureHeight_/rows_*y, textureWidth_/columns_, textureHeight_/rows_, boxNum_, boxNum_));
 						if (x === columns_ - 1 && y === rows_ - 1) break;
 						boxNum_++;
 					}
 				}
+
+				manager_.SearchByID(boxNum_).Display(false);
 			}
 
 			function Shuffle()
 			{
 				for (var i = 0; i < 100 * columns_ * rows_; i++)
 				{
-					var targetID = -1;
 					var rand = Math.floor(Math.random() * 4);
-					switch (rand)
-					{
-						case 0:
-						targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ + boxHeight_);
-						break;
-
-						case 1:
-						targetID = Search(boxes_[boxNum_].positionX_ + boxWidth_, boxes_[boxNum_].positionY_);
-						break;
-
-						case 2:
-						targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ - boxHeight_);
-						break;
-
-						case 3:
-						targetID = Search(boxes_[boxNum_].positionX_ - boxWidth_, boxes_[boxNum_].positionY_);
-						break;
-					}
-
-					if (targetID === -1) continue;
-					var tempX = boxes_[boxNum_].positionX_;
-					var tempY = boxes_[boxNum_].positionY_;
-					boxes_[boxNum_].Translate(boxes_[targetID].positionX_, boxes_[targetID].positionY_);
-					boxes_[targetID].Translate(tempX, tempY);
+					Swap(rand);
 				}
 			}
 
-			function Search(positionX, positionY)
+			function Swap(direction)
 			{
-				for (var i = 0; i < boxes_.length; i++)
+				var emptyBox = manager_.SearchByID(boxNum_);
+				var target;
+				switch (direction)
 				{
-					if (boxes_[i].positionX_ === positionX && boxes_[i].positionY_ === positionY) return i;
+					case 0: //Down
+					if (emptyBox.tag_ < columns_ * (rows_ - 1)) target = manager_.SearchByTag(emptyBox.tag_ + columns_);
+					break;
+
+					case 1: //Right
+					if (emptyBox.tag_ % columns_ !== (columns_ - 1)) target = manager_.SearchByTag(emptyBox.tag_ + 1);
+					break;
+
+					case 2: //Up
+					if (emptyBox.tag_ > columns_ - 1) target = manager_.SearchByTag(emptyBox.tag_ - columns_);
+					break;
+
+					case 3: //Left
+					if (emptyBox.tag_ % columns_ !== 0) target = manager_.SearchByTag(emptyBox.tag_ - 1);
+					break;
 				}
-				return -1;
+
+				if (target === undefined) return;
+				var tempTag = emptyBox.tag_;
+				emptyBox.Translate(target.tag_ % columns_ * boxWidth_, Math.floor(target.tag_ / columns_) * boxHeight_, target.tag_);
+				target.Translate(tempTag % columns_ * boxWidth_, Math.floor(tempTag / columns_) * boxHeight_, tempTag);
+			}
+
+			function CheckWinCondition()
+			{
+				for (var i = 0; i < boxNum_; i++)
+				{
+					var object = manager_.SearchByID(i);
+					if (object.tag_ !== object.ID_) return false; 
+				}
+				return true;
 			}
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Game Update
 			////////////////////////////////////////////////////////////////////////////////////////////////////
-			function Update()
+			function Main()
 			{
 				var ctx = $('main_canvas').getContext("2d");
+
+				Update();
+				Draw(ctx);
+
+				var t = setTimeout(Main, 16);
+			}
+
+			function Update()
+			{
+				manager_.Update();
+			}
+
+			function Draw(ctx)
+			{
 				ctx.fillStyle = "#ff0000";
 				ctx.fillRect(0, 0, imageWidth_, imageHeight_);
-				
-				for (var i = 0; i < boxes_.length - 1; i++)
-				{
-					boxes_[i].Draw(ctx);
-				}
 
-				var t = setTimeout(Update, 16);
+				manager_.Draw(ctx);
 			}
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -248,29 +248,24 @@
 			window.addEventListener("keydown", KeyDown, false);
 			function KeyDown(inputEvent)
 			{
-				var targetID = -1;
 				if (inputEvent.key == "w" || inputEvent.key == "i")
 				{
-					targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ + boxHeight_);
+					Swap(0);
 				}
 				else if (inputEvent.key == "a" || inputEvent.key == "j")
 				{
-					targetID = Search(boxes_[boxNum_].positionX_ + boxWidth_, boxes_[boxNum_].positionY_);
+					Swap(1);
 				}
 				else if (inputEvent.key == "s" || inputEvent.key == "k")
 				{
-					targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ - boxHeight_);
+					Swap(2);
 				}
 				else if (inputEvent.key == "d" || inputEvent.key == "l")
 				{
-					targetID = Search(boxes_[boxNum_].positionX_ - boxWidth_, boxes_[boxNum_].positionY_);
+					Swap(3);
 				}
 
-				if (targetID === -1) return;
-				var tempX = boxes_[boxNum_].positionX_;
-				var tempY = boxes_[boxNum_].positionY_;
-				boxes_[boxNum_].Translate(boxes_[targetID].positionX_, boxes_[targetID].positionY_);
-				boxes_[targetID].Translate(tempX, tempY);
+				if (CheckWinCondition()) manager_.SearchByID(boxNum_).Display(true);
 			}
 
 			var touchX_;
@@ -297,22 +292,26 @@
 				var distanceX = touchX_ - touchEndX_;
 				var distanceY = touchY_ - touchEndY_;
 
-				var targetID = -1;
+				//var targetID = -1;
 				if (Math.abs(distanceX) >= Math.abs(distanceY))
 				{
-					if (distanceX >= 0) targetID = Search(boxes_[boxNum_].positionX_ + boxWidth_, boxes_[boxNum_].positionY_);//move left
-					else targetID = Search(boxes_[boxNum_].positionX_ - boxWidth_, boxes_[boxNum_].positionY_);//moved right
+					// if (distanceX >= 0) targetID = Search(boxes_[boxNum_].positionX_ + boxWidth_, boxes_[boxNum_].positionY_);//move left
+					// else targetID = Search(boxes_[boxNum_].positionX_ - boxWidth_, boxes_[boxNum_].positionY_);//moved right
+					if (distanceX >= 0) Swap(1);//move left
+					else Swap(3);//moved right
 				}
 				else
 				{
-					if (distanceY >= 0) targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ + boxHeight_);//move up
-					else targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ - boxHeight_);//moved down
+					// if (distanceY >= 0) targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ + boxHeight_);//move up
+					// else targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ - boxHeight_);//moved down
+					if (distanceY >= 0) Swap(2);//move up
+					else Swap(0);//moved down
 				}
-				if (targetID === -1) return;
-				var tempX = boxes_[boxNum_].positionX_;
-				var tempY = boxes_[boxNum_].positionY_;
-				boxes_[boxNum_].Translate(boxes_[targetID].positionX_, boxes_[targetID].positionY_);
-				boxes_[targetID].Translate(tempX, tempY);
+				// if (targetID === -1) return;
+				// var tempX = boxes_[boxNum_].positionX_;
+				// var tempY = boxes_[boxNum_].positionY_;
+				// boxes_[boxNum_].Translate(boxes_[targetID].positionX_, boxes_[targetID].positionY_);
+				// boxes_[targetID].Translate(tempX, tempY);
 			}
 
 		</script>
