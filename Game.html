@@ -7,12 +7,26 @@
 	<body>
 		<canvas id="main_canvas" width="0px" height="0px"></canvas>
 		<div id="main_view"></div>
-		<input id="file_input" type="file">
-		<input id="column_input" type="number" value=4>Columns</input>
-		<input id="row_input" type="number" value=4>Rows</input>
-		<input id="num_display_input" type="checkbox">Display Numbers?</input>
-		<input id="outline_display_input" type="checkbox">Display Outlines?</input>
-        <button id="shuffle_button" type="button">Shuffle</button>
+		<div id="1">
+			<input id="file_input" type="file">
+		</div>
+		<div id="2">
+			<input id="column_input" type="number" value="4">Columns</input>
+			<input id="row_input" type="number" value="4">Rows</input>
+		</div>
+		<div id="3">
+			<input id="num_display_input" type="checkbox">Display Numbers?</input>
+			<input id="num_size_input" type="number" value="15">Number Size</input>
+			<input id="num_color_input" type="color" value="black">Number Color</input>
+		</div>
+		<div id="4">
+			<input id="outline_display_input" type="checkbox">Display Outlines?</input>
+			<input id="outline_size_input" type="number" value="2">Outline Size</input>
+			<input id="outline_color_input" type="color" value="black">Outline Color</input>
+		</div>
+		<div id="5">
+			<button id="shuffle_button" type="button">Shuffle</button>
+		</div>
 		<script src="./functions.js"></script>
 		<script src="./object.js"></script>
 		<script src="./manager.js"></script>
@@ -35,6 +49,8 @@
 			var touchX_;
 			var touchY_;
 
+			var mobile_ = false;
+
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Init
 			////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,15 +62,22 @@
 
 				var column_input = $("column_input");
             	column_input.addEventListener("change", ColumnInput);
-
 				var row_input = $("row_input");
             	row_input.addEventListener("change", RowInput);
 
 				var num_display_input = $("num_display_input");
             	num_display_input.addEventListener("change", DisplayNumbersInput);
+				var num_size_input = $("num_size_input");
+            	num_size_input.addEventListener("change", NumberSizeInput);
+				var num_color_input = $("num_color_input");
+            	num_color_input.addEventListener("change", NumberColorInput);
 
 				var outline_display_input = $("outline_display_input");
             	outline_display_input.addEventListener("change", DisplayOutlinesInput);
+				var outline_size_input = $("outline_size_input");
+            	outline_size_input.addEventListener("change", OutlineSizeInput);
+				var outline_color_input = $("outline_color_input");
+            	outline_color_input.addEventListener("change", OutlineColorInput);
 
 				var shuffle_button = $("shuffle_button");
             	shuffle_button.addEventListener("click", ShuffleButtonInput);
@@ -66,6 +89,9 @@
 				//el.addEventListener("touchcancel", handleCancel, false);
 
 				window.addEventListener("keydown", KeyDown, false);
+
+				mobile_ = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+				console.log(mobile_);
 
 				//Reset values - just a visual thing where values are still displayed but the actual value is empty
 				fileInput.value = "";
@@ -116,10 +142,30 @@
 				manager_.DisplayNumbers(num_display_input.checked);
             }
 
+			function NumberSizeInput()
+			{
+				manager_.SetNumberSize(parseInt(num_size_input.value, 10));
+			}
+
+			function NumberColorInput()
+			{
+				manager_.SetNumberColor(num_color_input.value);
+			}
+
 			function DisplayOutlinesInput()
             {
 				manager_.DisplayOutlines(outline_display_input.checked);
             }
+
+			function OutlineSizeInput()
+			{
+				manager_.SetOutlineSize(parseInt(outline_size_input.value, 10));
+			}
+
+			function OutlineColorInput()
+			{
+				manager_.SetOutlineColor(outline_color_input.value);
+			}
 
 			function ShuffleButtonInput()
             {
@@ -128,8 +174,9 @@
 				Clear(); //remove all objects
 				SetBoxes(); //layout boxes determined by image width / height && columns / rows 
 				Shuffle(); //suffle the boxes
-				DisplayNumbersInput(); //re-applies setting as all objects were deleted in "Clear()"
-				DisplayOutlinesInput(); //re-applies setting as all objects were deleted in "Clear()"
+
+				//DisplayNumbersInput(); //re-applies setting as all objects were deleted in "Clear()"
+				//DisplayOutlinesInput(); //re-applies setting as all objects were deleted in "Clear()"
 
 				$('main_canvas').width = boxWidth_ * columns_; //more tidy looking (background dosen't poke out) then using just imageWidth_ && imageHeight_
 				$('main_canvas').height = boxHeight_ * rows_; //because a few pixles are lost when Math.floor is used to make the boxes "fit" nicer
@@ -189,7 +236,9 @@
 					for (var x = 0; x < columns_; x++)
 					{
 						manager_.Add(new object(image_, boxWidth_*x, boxHeight_*y, boxWidth_, boxHeight_, 
-						 	textureWidth_/columns_*x, textureHeight_/rows_*y, textureWidth_/columns_, textureHeight_/rows_, boxNum_, boxNum_));
+						 	textureWidth_/columns_*x, textureHeight_/rows_*y, textureWidth_/columns_, textureHeight_/rows_, boxNum_, boxNum_,
+							num_display_input.checked, parseInt(num_size_input.value, 10), num_color_input.value,
+							outline_display_input.checked, parseInt(outline_size_input.value, 10), outline_color_input.value));
 						if (x === columns_ - 1 && y === rows_ - 1) break;
 						boxNum_++;
 					}
@@ -256,7 +305,8 @@
 				Update(delta_time());
 				Draw(ctx);
 
-				var t = setTimeout(Main, 0);
+				if (!mobile_) var t = setTimeout(Main, 0);
+				else var t = setTimeout(Main, 16);
 			}
 
 			function Update(delta_time)

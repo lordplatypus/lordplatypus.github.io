@@ -38,9 +38,29 @@ manager.prototype.DisplayNumbers = function(displayNumbers)
     this.objects_.forEach(object => object.DisplayNumber(displayNumbers));
 }
 
+manager.prototype.SetNumberSize = function(numberSize)
+{
+    this.objects_.forEach(object => object.SetNumberSize(numberSize));
+}
+
+manager.prototype.SetNumberColor = function(numberColor)
+{
+    this.objects_.forEach(object => object.SetNumberColor(numberColor));
+}
+
 manager.prototype.DisplayOutlines = function(displayOutlines)
 {
     this.objects_.forEach(object => object.DisplayOutline(displayOutlines));
+}
+
+manager.prototype.SetOutlineSize = function(outlineSize)
+{
+    this.objects_.forEach(object => object.SetOutlineSize(outlineSize));
+}
+
+manager.prototype.SetOutlineColor = function(outlineColor)
+{
+    this.objects_.forEach(object => object.SetOutlineColor(outlineColor));
 }
 
 manager.prototype.Clear = function()

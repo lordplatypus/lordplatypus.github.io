@@ -1,9 +1,12 @@
-var object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, ID, tag)
+var object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, 
+                      ID, tag, displayNumber, numberSize, numberColor, displayOutline, outlineSize, outlineColor)
 {
     //
     this.image_ = image; //image object
     this.positionX_ = positionX; //world position x
     this.positionY_ = positionY; //world position y
+    this.targetX_ = positionX; 
+    this.targetY_ = positionY;
     this.width_ = width; //width of the world object
     this.height_ = height; //height of the world object
     this.textureX_ = textureX; //texture position x (where to make the cutout)
@@ -14,10 +17,12 @@ var object = function(image, positionX, positionY, width, height, textureX, text
     this.tag_ = tag; //position ID - current position (if tag == ID then the object is in the correct position)
 
     this.display_ = true; //display the object?
-    this.displayNumber_ = false; //display the number (correct position)?
-    this.displayOutline_ = false; //display outlines when in correct position?
-    this.targetX_ = positionX; 
-    this.targetY_ = positionY;
+    this.displayNumber_ = displayNumber; //display the number (correct position)?
+    this.displayOutline_ = displayOutline; //display outlines when in correct position?
+    this.numberSize_ = numberSize;
+    this.numberColor_ = numberColor;
+    this.outlineSize_ = outlineSize;
+    this.outlineColor_ = outlineColor;
 }
 
 object.prototype.Translate = function(positionX, positionY, tag)
@@ -41,15 +46,16 @@ object.prototype.Draw = function(ctx)
 
     if (this.displayNumber_)
     {
-        ctx.font = 20 + "px'MSPゴシック'";
-        ctx.fillStyle = "#888888";
-        ctx.fillText(this.ID_, this.positionX_, this.positionY_ + 20);
+        ctx.font = this.numberSize_ + "px'MSPゴシック'";
+        ctx.fillStyle = this.numberColor_;
+        ctx.fillText(this.ID_, this.positionX_, this.positionY_ + this.numberSize_);
     }
 
     if (this.displayOutline_ && this.ID_ === this.tag_)
     {
-        ctx.strokeStyle = 'green';
-        ctx.strokeRect(this.positionX_, this.positionY_, this.width_, this.height_);
+        ctx.lineWidth = this.outlineSize_;
+        ctx.strokeStyle = this.outlineColor_;
+        ctx.strokeRect(this.positionX_ + this.outlineSize_ / 2, this.positionY_ + this.outlineSize_ / 2, this.width_ - this.outlineSize_, this.height_ - this.outlineSize_);
     }
 }
 
@@ -63,9 +69,29 @@ object.prototype.DisplayNumber = function(displayNumber)
     this.displayNumber_ = displayNumber;
 }
 
+object.prototype.SetNumberSize = function(numberSize)
+{
+    this.numberSize_ = numberSize;
+}
+
+object.prototype.SetNumberColor = function(numberColor)
+{
+    this.numberColor_ = numberColor;
+}
+
 object.prototype.DisplayOutline = function(displayOutline)
 {
     this.displayOutline_ = displayOutline;
+}
+
+object.prototype.SetOutlineSize = function(outlineSize)
+{
+    this.outlineSize_ = outlineSize;
+}
+
+object.prototype.SetOutlineColor = function(outlineColor)
+{
+    this.outlineColor_ = outlineColor;
 }
 
 object.prototype.Lerp = function(time)
