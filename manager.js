@@ -3,9 +3,9 @@ var manager = function()
     this.objects_ = [];
 }
 
-manager.prototype.Update = function()
+manager.prototype.Update = function(delta_time)
 {
-    this.objects_.forEach(object => object.Update());
+    this.objects_.forEach(object => object.Update(delta_time));
 }
 manager.prototype.Draw = function(ctx)
 {

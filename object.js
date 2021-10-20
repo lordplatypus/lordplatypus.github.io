@@ -1,5 +1,6 @@
 var object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, ID, tag)
 {
+    //
     this.image_ = image; //image object
     this.positionX_ = positionX; //world position x
     this.positionY_ = positionY; //world position y
@@ -12,25 +13,23 @@ var object = function(image, positionX, positionY, width, height, textureX, text
     this.ID_ = ID; //number ID - this correlates to its correct position (i.e. 0 = top left corner, 1 = one position to the right, etc)
     this.tag_ = tag; //position ID - current position (if tag == ID then the object is in the correct position)
 
-    this.display_ = true;
-    this.displayNumber_ = false;
-    this.displayOutline_ = false;
-    this.targetX_ = positionX;
+    this.display_ = true; //display the object?
+    this.displayNumber_ = false; //display the number (correct position)?
+    this.displayOutline_ = false; //display outlines when in correct position?
+    this.targetX_ = positionX; 
     this.targetY_ = positionY;
 }
 
 object.prototype.Translate = function(positionX, positionY, tag)
 {//Updates the 'image cutout' position
-    this.targetX_ = positionX;
-    this.targetY_ = positionY;
-    this.tag_ = tag;
+    this.targetX_ = positionX; //x position of where the object will end up
+    this.targetY_ = positionY; //y position of where the object will end up
+    this.tag_ = tag; //update the tag to its new position
 }
 
-object.prototype.Update = function()
-{
-    //if (Math.floor(this.positionX_) !== Math.floor(this.targetX_) && Math.floor(this.positionY_) !== Math.floor(this.targetY_)); 
-    
-    this.Lerp(0.25);
+object.prototype.Update = function(delta_time)
+{    
+    this.Lerp(delta_time * 10.0);
 }
 
 object.prototype.Draw = function(ctx)

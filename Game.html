@@ -5,13 +5,13 @@
 		<title>Game</title>
 	</head>
 	<body>
-		<canvas id="main_canvas" width="480px" height="320px"></canvas>
+		<canvas id="main_canvas" width="0px" height="0px"></canvas>
 		<div id="main_view"></div>
 		<input id="file_input" type="file">
-		<input id="column_input" type="number" value="4">Columns</input>
-		<input id="row_input" type="number" value="4">Rows</input>
-		<input id="num_display_input" type="checkbox" value="false">Display Numbers?</input>
-		<input id="outline_display_input" type="checkbox" value="false">Display Outlines?</input>
+		<input id="column_input" type="number" value=4>Columns</input>
+		<input id="row_input" type="number" value=4>Rows</input>
+		<input id="num_display_input" type="checkbox">Display Numbers?</input>
+		<input id="outline_display_input" type="checkbox">Display Outlines?</input>
         <button id="shuffle_button" type="button">Shuffle</button>
 		<script src="./functions.js"></script>
 		<script src="./object.js"></script>
@@ -32,29 +32,59 @@
 			var columns_ = 4;
 			var rows_ = 4;
 			var boxNum_ = 0;
+			var touchX_;
+			var touchY_;
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Init
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			window.onload = function ()
 			{
-				var el = $("main_canvas");
-				el.addEventListener("touchstart", TouchStart, false);
-				el.addEventListener("touchmove", TouchMove, false);
-				el.addEventListener("touchend", TouchEnd, false);
+				//Add all the event listeners
+				var fileInput = $("file_input");
+				fileInput.addEventListener('change', ReadImage);
+
+				var column_input = $("column_input");
+            	column_input.addEventListener("change", ColumnInput);
+
+				var row_input = $("row_input");
+            	row_input.addEventListener("change", RowInput);
+
+				var num_display_input = $("num_display_input");
+            	num_display_input.addEventListener("change", DisplayNumbersInput);
+
+				var outline_display_input = $("outline_display_input");
+            	outline_display_input.addEventListener("change", DisplayOutlinesInput);
+
+				var shuffle_button = $("shuffle_button");
+            	shuffle_button.addEventListener("click", ShuffleButtonInput);
+
+				var touch = $("main_canvas");
+				touch.addEventListener("touchstart", TouchStart, false);
+				touch.addEventListener("touchmove", TouchMove, false);
+				touch.addEventListener("touchend", TouchEnd, false);
 				//el.addEventListener("touchcancel", handleCancel, false);
 
+				window.addEventListener("keydown", KeyDown, false);
+
+				//Reset values - just a visual thing where values are still displayed but the actual value is empty
+				fileInput.value = "";
+				column_input.value = 4;
+				row_input.value = 4;
+				num_display_input.checked = false;
+				outline_display_input.checked = false;
+
+				//Start the main game loop
 				Main();
 			}
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Inputs
-			////////////////////////////////////////////////////////////////////////////////////////////////////
-			input = document.querySelector("#file_input");
-            input.addEventListener('change', function()
+			////////////////////////////////////////////////////////////////////////////////////////////////////	
+			function ReadImage()
 			{
-				renderImage(this.files[0])
-			});
+				renderImage(this.files[0]);
+			}
 
 			function renderImage(file) 
             {
@@ -71,39 +101,39 @@
                 reader.readAsDataURL(file);
             }
 
-			column_input = document.querySelector("#column_input");
-            column_input.addEventListener("change", function()
+			function ColumnInput()
             {
-				columns_ = column_input.value;
-            });
+				columns_ = parseInt(column_input.value, 10);
+            }
 
-			row_input = document.querySelector("#row_input");
-            row_input.addEventListener("change", function()
+			function RowInput()
             {
-				rows_ = row_input.value;
-            });
+				rows_ = parseInt(row_input.value, 10);
+            }
 
-			num_display_input = document.querySelector("#num_display_input");
-            num_display_input.addEventListener("change", function()
+			function DisplayNumbersInput()
             {
-				manager_.DisplayNumbers(num_display_input.value);
-            });
+				manager_.DisplayNumbers(num_display_input.checked);
+            }
 
-			outline_display_input = document.querySelector("#outline_display_input");
-            outline_display_input.addEventListener("change", function()
+			function DisplayOutlinesInput()
             {
-				manager_.DisplayOutlines(outline_display_input.value);
-            });
+				manager_.DisplayOutlines(outline_display_input.checked);
+            }
 
-			shuffle_button = document.querySelector("#shuffle_button");
-            shuffle_button.addEventListener("click", function()
+			function ShuffleButtonInput()
             {
-				$('main_canvas').width = imageWidth_;
-				$('main_canvas').height = imageHeight_;
-				Clear();
-				SetBoxes();
-				Shuffle();
-            });
+				if ($("file_input").value === "") return;
+
+				Clear(); //remove all objects
+				SetBoxes(); //layout boxes determined by image width / height && columns / rows 
+				Shuffle(); //suffle the boxes
+				DisplayNumbersInput(); //re-applies setting as all objects were deleted in "Clear()"
+				DisplayOutlinesInput(); //re-applies setting as all objects were deleted in "Clear()"
+
+				$('main_canvas').width = boxWidth_ * columns_; //more tidy looking (background dosen't poke out) then using just imageWidth_ && imageHeight_
+				$('main_canvas').height = boxHeight_ * rows_; //because a few pixles are lost when Math.floor is used to make the boxes "fit" nicer
+            }
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Game Functions
@@ -133,8 +163,8 @@
 						}
 					}
 
-					console.log(imageWidth_);
-					console.log(imageHeight_);
+					// console.log(imageWidth_);
+					// console.log(imageHeight_);
 				}
 			}
 
@@ -223,15 +253,15 @@
 			{
 				var ctx = $('main_canvas').getContext("2d");
 
-				Update();
+				Update(delta_time());
 				Draw(ctx);
 
-				var t = setTimeout(Main, 16);
+				var t = setTimeout(Main, 0);
 			}
 
-			function Update()
+			function Update(delta_time)
 			{
-				manager_.Update();
+				manager_.Update(delta_time);
 			}
 
 			function Draw(ctx)
@@ -245,7 +275,6 @@
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Key and Touch Inputs
 			////////////////////////////////////////////////////////////////////////////////////////////////////
-			window.addEventListener("keydown", KeyDown, false);
 			function KeyDown(inputEvent)
 			{
 				if (inputEvent.key == "w" || inputEvent.key == "i")
@@ -265,11 +294,9 @@
 					Swap(3);
 				}
 
-				if (CheckWinCondition()) manager_.SearchByID(boxNum_).Display(true);
+				if (CheckWinCondition() && boxNum_ > 0) manager_.SearchByID(boxNum_).Display(true);
 			}
 
-			var touchX_;
-			var touchY_;
 			function TouchStart(event) 
 			{
 				event.preventDefault();
@@ -292,26 +319,18 @@
 				var distanceX = touchX_ - touchEndX_;
 				var distanceY = touchY_ - touchEndY_;
 
-				//var targetID = -1;
 				if (Math.abs(distanceX) >= Math.abs(distanceY))
 				{
-					// if (distanceX >= 0) targetID = Search(boxes_[boxNum_].positionX_ + boxWidth_, boxes_[boxNum_].positionY_);//move left
-					// else targetID = Search(boxes_[boxNum_].positionX_ - boxWidth_, boxes_[boxNum_].positionY_);//moved right
 					if (distanceX >= 0) Swap(1);//move left
 					else Swap(3);//moved right
 				}
 				else
 				{
-					// if (distanceY >= 0) targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ + boxHeight_);//move up
-					// else targetID = Search(boxes_[boxNum_].positionX_, boxes_[boxNum_].positionY_ - boxHeight_);//moved down
-					if (distanceY >= 0) Swap(2);//move up
-					else Swap(0);//moved down
+					if (distanceY >= 0) Swap(0);//move up
+					else Swap(2);//moved down
 				}
-				// if (targetID === -1) return;
-				// var tempX = boxes_[boxNum_].positionX_;
-				// var tempY = boxes_[boxNum_].positionY_;
-				// boxes_[boxNum_].Translate(boxes_[targetID].positionX_, boxes_[targetID].positionY_);
-				// boxes_[targetID].Translate(tempX, tempY);
+
+				if (CheckWinCondition() && boxNum_ > 0) manager_.SearchByID(boxNum_).Display(true);
 			}
 
 		</script>
