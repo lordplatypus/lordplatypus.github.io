@@ -6,29 +6,38 @@
 	</head>
 	<body>
 		<canvas id="main_canvas" width="0px" height="0px"></canvas>
-		<div id="main_view"></div>
 		<div id="1">
 			<input id="file_input" type="file" accept="image/png, image/jpeg" value="">
 			<input id="background_color_input" type="color" value="black">Background Color</input>
 		</div>
+		<br>
 		<div id="2">
 			<input id="column_input" type="number" value="4">Columns</input>
 			<input id="row_input" type="number" value="4">Rows</input>
 		</div>
+		<br>
 		<div id="3">
 			<input id="num_display_input" type="checkbox">Display Numbers?</input>
 			<input id="num_size_input" type="number" value="15">Number Size</input>
 			<input id="num_color_input" type="color" value="black">Number Color</input>
 		</div>
+		<br>
 		<div id="4">
 			<input id="outline_display_input" type="checkbox">Display Outlines?</input>
 			<input id="outline_size_input" type="number" value="2">Outline Size</input>
 			<input id="outline_color_input" type="color" value="black">Outline Color</input>
 		</div>
+		<br>
 		<div id="5">
 			<input id="invert_controls_input" type="checkbox">Invert controls?</input>
 		</div>
+		<br>
 		<div id="6">
+			<input id="shift_input" type="checkbox" hidden="true"></input>
+			<span id="shift_text" hidden="true">Show Hint?</span>
+		</div>
+		<br>
+		<div id="7">
 			<button id="shuffle_button" type="button">Shuffle</button>
 		</div>
 		<script src="./functions.js"></script>
@@ -54,12 +63,16 @@
 			var touchX_; //for touch controlls - x
 			var touchY_; //for touch controlls - y
 			var mobile_ = false; //is the user on mobile?
+			var shift_ = false; //is shift pressed?
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Init
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			window.onload = function ()
 			{
+				//On mobile?
+				mobile_ = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 				//Add all the event listeners
 				var file_input = $("file_input");
 				file_input.addEventListener('change', ReadImage);
@@ -90,17 +103,28 @@
 				var shuffle_button = $("shuffle_button");
             	shuffle_button.addEventListener("click", ShuffleButtonInput);
 
-				var touch = $("main_canvas");
-				touch.addEventListener("touchstart", TouchStart, false);
-				touch.addEventListener("touchmove", TouchMove, false);
-				touch.addEventListener("touchend", TouchEnd, false);
-				//el.addEventListener("touchcancel", handleCancel, false);
-
 				window.addEventListener("keydown", KeyDown, false);
+				if (mobile_)
+				{
+					var touch = $("main_canvas");
+					canvas_input.addEventListener("touchstart", TouchStart, false);
+					canvas_input.addEventListener("touchmove", TouchMove, false);
+					canvas_input.addEventListener("touchend", TouchEnd, false);
+					//touch.addEventListener("touchcancel", handleCancel, false);
 
-				mobile_ = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-				console.log(mobile_);
+					// var shift_input = $("shift_input");
+					// shift_input.hidden = false;
+					// shift_input.addEventListener("change", ShiftInput);
+					// var shift_text = $("shift_text");
+					// shift_text.hidden = false;
+				}
 
+				var shift_input = $("shift_input");
+				shift_input.hidden = false;
+				shift_input.addEventListener("change", ShiftInput);
+				var shift_text = $("shift_text");
+				shift_text.hidden = false;
+				
 				//Reset values on refresh
 				if (file_input.value !== "") renderImage(file_input.files[0]);
 				columns_ = parseInt(column_input.value, 10);
@@ -179,19 +203,24 @@
 				manager_.SetOutlineColor(outline_color_input.value);
 			}
 
+			function ShiftInput()
+			{
+				manager_.SearchByID(-1).Display(shift_input.checked);
+			}
+
 			function ShuffleButtonInput()
             {
 				if ($("file_input").value === "") return;
 
 				Clear(); //remove all objects
-				SetBoxes(); //layout boxes determined by image width / height && columns / rows 
+				SetBoxes(); //layout boxes determined by image width / height && columns / rows
+				SetImage(); //setup the hint image
 				Shuffle(); //suffle the boxes
-
-				//DisplayNumbersInput(); //re-applies setting as all objects were deleted in "Clear()"
-				//DisplayOutlinesInput(); //re-applies setting as all objects were deleted in "Clear()"
 
 				$('main_canvas').width = boxWidth_ * columns_; //more tidy looking (background dosen't poke out) then using just imageWidth_ && imageHeight_
 				$('main_canvas').height = boxHeight_ * rows_; //because a few pixles are lost when Math.floor is used to make the boxes "fit" nicer
+				shift_ = false; //if this was true when the puzzle is shuffled, the user would have to press shift twice to get it to work 
+				shift_input.checked = false; //or click the checkbox twice - these 2 lines eliminate that problem
             }
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -247,7 +276,7 @@
 				{
 					for (var x = 0; x < columns_; x++)
 					{
-						manager_.Add(new object(image_, boxWidth_*x, boxHeight_*y, boxWidth_, boxHeight_, 
+						manager_.Add(new box_object(image_, boxWidth_*x, boxHeight_*y, boxWidth_, boxHeight_, 
 						 	textureWidth_/columns_*x, textureHeight_/rows_*y, textureWidth_/columns_, textureHeight_/rows_, boxNum_, boxNum_,
 							num_display_input.checked, parseInt(num_size_input.value, 10), num_color_input.value,
 							outline_display_input.checked, parseInt(outline_size_input.value, 10), outline_color_input.value));
@@ -266,6 +295,11 @@
 					var rand = Math.floor(Math.random() * 4);
 					Swap(rand);
 				}
+			}
+
+			function SetImage()
+			{//Complete picture for hint
+				manager_.Add(new image_object(image_, 0, 0, imageWidth_, imageHeight_, 0, 0, textureWidth_, textureHeight_, -1, -1, false))
 			}
 
 			function Swap(direction)
@@ -358,6 +392,13 @@
 				{
 					if (invert_controls_input.checked) Swap(1);
 					else Swap(3);
+				}
+
+				if (inputEvent.shiftKey) 
+				{
+					if (shift_) shift_ = false;
+					else shift_ = true;
+					manager_.SearchByID(-1).Display(shift_);
 				}
 
 				if (CheckWinCondition() && boxNum_ > 0) manager_.SearchByID(boxNum_).Display(true);

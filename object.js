@@ -1,5 +1,8 @@
-var object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, 
-                      ID, tag, displayNumber, numberSize, numberColor, displayOutline, outlineSize, outlineColor)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///object - abstract
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+var object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, ID, tag)
 {
     //
     this.image_ = image; //image object
@@ -17,46 +20,25 @@ var object = function(image, positionX, positionY, width, height, textureX, text
     this.tag_ = tag; //position ID - current position (if tag == ID then the object is in the correct position)
 
     this.display_ = true; //display the object?
-    this.displayNumber_ = displayNumber; //display the number (correct position)?
-    this.displayOutline_ = displayOutline; //display outlines when in correct position?
-    this.numberSize_ = numberSize;
-    this.numberColor_ = numberColor;
-    this.outlineSize_ = outlineSize;
-    this.outlineColor_ = outlineColor;
+    this.displayNumber_; //display the number (correct position)?
+    this.displayOutline_; //display outlines when in correct position?
+    this.numberSize_;
+    this.numberColor_;
+    this.outlineSize_;
+    this.outlineColor_;
 }
+
+object.prototype.Update = function(delta_time)
+{}
+
+object.prototype.Draw = function(ctx)
+{}
 
 object.prototype.Translate = function(positionX, positionY, tag)
 {//Updates the 'image cutout' position
     this.targetX_ = positionX; //x position of where the object will end up
     this.targetY_ = positionY; //y position of where the object will end up
     this.tag_ = tag; //update the tag to its new position
-}
-
-object.prototype.Update = function(delta_time)
-{    
-    this.Lerp(delta_time * 10.0);
-}
-
-object.prototype.Draw = function(ctx)
-{//Draw the 'image cutout' on the canvas
-    if (!this.display_) return;
-
-    ctx.drawImage(this.image_, this.textureX_, this.textureY_, this.textureWidth_, this.textureHeight_, 
-                               this.positionX_, this.positionY_, this.width_, this.height_);
-
-    if (this.displayNumber_)
-    {
-        ctx.font = this.numberSize_ + "px'MSPゴシック'";
-        ctx.fillStyle = this.numberColor_;
-        ctx.fillText(this.ID_, this.positionX_, this.positionY_ + this.numberSize_);
-    }
-
-    if (this.displayOutline_ && this.ID_ === this.tag_)
-    {
-        ctx.lineWidth = this.outlineSize_;
-        ctx.strokeStyle = this.outlineColor_;
-        ctx.strokeRect(this.positionX_ + this.outlineSize_ / 2, this.positionY_ + this.outlineSize_ / 2, this.width_ - this.outlineSize_, this.height_ - this.outlineSize_);
-    }
 }
 
 object.prototype.Display = function(display)
@@ -98,4 +80,75 @@ object.prototype.Lerp = function(time)
 {
     this.positionX_ = (1 - time) * this.positionX_ + time * this.targetX_;
     this.positionY_ = (1 - time) * this.positionY_ + time * this.targetY_;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///box - child of object
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+var box_object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, ID, tag, 
+    displayNumber, numberSize, numberColor, displayOutline, outlineSize, outlineColor)
+{
+    object.apply(this, arguments);
+
+    this.displayNumber_ = displayNumber; //display the number (correct position)?
+    this.displayOutline_ = displayOutline; //display outlines when in correct position?
+    this.numberSize_ = numberSize;
+    this.numberColor_ = numberColor;
+    this.outlineSize_ = outlineSize;
+    this.outlineColor_ = outlineColor;
+}
+box_object.prototype = Object.create(object.prototype);
+//box_object.prototype.constructor = box;
+
+box_object.prototype.Update = function(delta_time)
+{    
+    this.Lerp(delta_time * 10.0);
+}
+
+box_object.prototype.Draw = function(ctx)
+{//Draw the 'image cutout' on the canvas
+    if (!this.display_) return;
+
+    ctx.drawImage(this.image_, this.textureX_, this.textureY_, this.textureWidth_, this.textureHeight_, 
+                this.positionX_, this.positionY_, this.width_, this.height_);
+
+    if (this.displayNumber_)
+    {
+        ctx.font = this.numberSize_ + "px'MSPゴシック'";
+        ctx.fillStyle = this.numberColor_;
+        ctx.fillText(this.ID_, this.positionX_, this.positionY_ + this.numberSize_);
+    }
+
+    if (this.displayOutline_ && this.ID_ === this.tag_)
+    {
+        ctx.lineWidth = this.outlineSize_;
+        ctx.strokeStyle = this.outlineColor_;
+        ctx.strokeRect(this.positionX_ + this.outlineSize_ / 2, this.positionY_ + this.outlineSize_ / 2, this.width_ - this.outlineSize_, this.height_ - this.outlineSize_);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///image - child of object
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+var image_object = function(image, positionX, positionY, width, height, textureX, textureY, textureWidth, textureHeight, ID, tag, 
+    display)
+{
+    object.apply(this, arguments);
+
+    this.display_ = display;
+}
+image_object.prototype = Object.create(object.prototype);
+//image_object.prototype.constructor = box;
+
+image_object.prototype.Update = function(delta_time)
+{}
+
+image_object.prototype.Draw = function(ctx)
+{
+    if (!this.display_) return;
+
+    ctx.drawImage(this.image_, this.textureX_, this.textureY_, this.textureWidth_, this.textureHeight_, 
+                  this.positionX_, this.positionY_, this.width_, this.height_);
 }
