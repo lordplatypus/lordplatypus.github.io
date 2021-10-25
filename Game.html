@@ -33,11 +33,14 @@
 		</div>
 		<br>
 		<div id="6">
-			<input id="shift_input" type="checkbox" hidden="true"></input>
-			<span id="shift_text" hidden="true">Show Hint?</span>
+			<input id="shift_input" type="checkbox">Show Hint?</input>
 		</div>
 		<br>
 		<div id="7">
+			<input id="random_empty_input" type="checkbox">Radomize the location of the empty box? (default is the bottom right box)</input>
+		</div>
+		<br>
+		<div id="8">
 			<button id="shuffle_button" type="button">Shuffle</button>
 		</div>
 		<script src="./functions.js"></script>
@@ -59,7 +62,7 @@
 			var boxHeight_; //height of the individual image boxes (imageHeight_ / rows_)
 			var columns_ = 4; //number of columns (use with x axis calcs)
 			var rows_ = 4; //number of rows (use with y axis calcs)
-			var boxNum_ = 0; //total number of boxes
+			var emptyBoxID_ = 0; //holds the id for the empty box
 			var touchX_; //for touch controlls - x
 			var touchY_; //for touch controlls - y
 			var mobile_ = false; //is the user on mobile?
@@ -100,6 +103,8 @@
 
 				var invert_controls_input = $("invert_controls_input");
 
+				var random_empty_input = $("random_empty_input");
+
 				var shuffle_button = $("shuffle_button");
             	shuffle_button.addEventListener("click", ShuffleButtonInput);
 
@@ -111,22 +116,13 @@
 					canvas_input.addEventListener("touchmove", TouchMove, false);
 					canvas_input.addEventListener("touchend", TouchEnd, false);
 					//touch.addEventListener("touchcancel", handleCancel, false);
-
-					// var shift_input = $("shift_input");
-					// shift_input.hidden = false;
-					// shift_input.addEventListener("change", ShiftInput);
-					// var shift_text = $("shift_text");
-					// shift_text.hidden = false;
 				}
 
 				var shift_input = $("shift_input");
-				shift_input.hidden = false;
 				shift_input.addEventListener("change", ShiftInput);
-				var shift_text = $("shift_text");
-				shift_text.hidden = false;
 				
 				//Reset values on refresh
-				if (file_input.value !== "") renderImage(file_input.files[0]);
+				if (file_input.value !== "") RenderImage(file_input.files[0]);
 				columns_ = parseInt(column_input.value, 10);
 				rows_ = parseInt(row_input.value, 10);
 				backgroundColor_ = background_color_input.value;
@@ -140,10 +136,10 @@
 			////////////////////////////////////////////////////////////////////////////////////////////////////	
 			function ReadImage()
 			{
-				renderImage(this.files[0]);
+				RenderImage(this.files[0]);
 			}
 
-			function renderImage(file) 
+			function RenderImage(file) 
             {
                 //generate a new FileReader object
                 var reader = new FileReader();
@@ -228,26 +224,27 @@
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			function LoadImage(imagePath)
 			{
-				image_ = new Image();
-				image_.src = imagePath;
+				image_ = new Image(); //make a new image object
+				image_.src = imagePath; //give it the file path that was generated in RenderImage()
 				image_.onload = function()
-				{
+				{//once the image loads
+					//set wisth and height to the images natual size to begin with
 					textureWidth_ = image_.naturalWidth;
 					textureHeight_ = image_.naturalHeight;
 					imageWidth_ = textureWidth_;
 					imageHeight_ = textureHeight_; 
 
 					if (window.innerWidth < textureWidth_ || window.innerHeight < textureHeight_) 
-					{
+					{//if the natual width or height of the image is greater then the windows width or height, resize the image
 						if (window.innerWidth <= window.innerHeight)
-						{
-							imageWidth_ = window.innerWidth;
-							imageHeight_ = Math.floor(textureHeight_ / (textureWidth_ / imageWidth_));
+						{//is the browser window smaller then the browser height?
+							imageWidth_ = window.innerWidth; //set the image width to the browser width
+							imageHeight_ = Math.floor(textureHeight_ / (textureWidth_ / imageWidth_)); //scale the image height to match the width
 						}
 						else
-						{
-							imageHeight_ = window.innerHeight;
-							imageWidth_ = Math.floor(textureWidth_ / (textureHeight_ / imageHeight_));
+						{//or is the browser window bigger then the browser height?
+							imageHeight_ = window.innerHeight; //set the image height to the browser height
+							imageWidth_ = Math.floor(textureWidth_ / (textureHeight_ / imageHeight_)); //scale the image width to match the height
 						}
 					}
 
@@ -257,57 +254,60 @@
 			}
 
 			function SetBoxSize()
-			{
+			{//set the individual box width and height based on image width and height + number of columns and rows
 				boxWidth_ = Math.floor(imageWidth_ / columns_);
 				boxHeight_ = Math.floor(imageHeight_ / rows_);
 			}
 
 			function Clear()
-			{
+			{//remove all objects from the manager
 				manager_.Clear();
-				boxNum_ = 0;
 			}
 
 			function SetBoxes()
-			{
-				SetBoxSize();
+			{//create the box objects and pass them to the manager
+				SetBoxSize(); //set box width and height 
 
+				//if the random empty box setting is set, randomize the empty box location
+				if (random_empty_input.checked) emptyBoxID_ = Math.floor(Math.random() * (columns_ * rows_ - 1));
+				else emptyBoxID_ = columns_ * rows_ - 1; //else the empty box location is set to the bottom right corner
+
+				var boxNum = 0; //used to set IDs and Tags
 				for (var y = 0; y < rows_; y++)
 				{
 					for (var x = 0; x < columns_; x++)
-					{
+					{//make box objects
 						manager_.Add(new box_object(image_, boxWidth_*x, boxHeight_*y, boxWidth_, boxHeight_, 
-						 	textureWidth_/columns_*x, textureHeight_/rows_*y, textureWidth_/columns_, textureHeight_/rows_, boxNum_, boxNum_,
+						 	textureWidth_/columns_*x, textureHeight_/rows_*y, textureWidth_/columns_, textureHeight_/rows_, boxNum, boxNum,
 							num_display_input.checked, parseInt(num_size_input.value, 10), num_color_input.value,
 							outline_display_input.checked, parseInt(outline_size_input.value, 10), outline_color_input.value));
-						if (x === columns_ - 1 && y === rows_ - 1) break;
-						boxNum_++;
+						boxNum++;
 					}
 				}
 
-				manager_.SearchByID(boxNum_).Display(false);
+				manager_.SearchByID(emptyBoxID_).Display(false); //make the empty box "empty"
 			}
 
 			function Shuffle()
-			{
+			{//Shuffle the board
 				for (var i = 0; i < 100 * columns_ * rows_; i++)
 				{
-					var rand = Math.floor(Math.random() * 4);
+					var rand = Math.floor(Math.random() * 4); //random direction
 					Swap(rand);
 				}
 			}
 
 			function SetImage()
 			{//Complete picture for hint
-				manager_.Add(new image_object(image_, 0, 0, imageWidth_, imageHeight_, 0, 0, textureWidth_, textureHeight_, -1, -1, false))
+				manager_.Add(new image_object(image_, 0, 0, boxWidth_ * columns_, boxHeight_ * rows_, 0, 0, textureWidth_, textureHeight_, -1, -1, false))
 			}
 
 			function Swap(direction)
-			{
-				var emptyBox = manager_.SearchByID(boxNum_);
-				var target;
+			{//swaps one object with the empty box object
+				var emptyBox = manager_.SearchByID(emptyBoxID_); //get the empty box object
+				var target; //this will be the target object that will be swaped with the empty box
 				switch (direction)
-				{
+				{//set target
 					case 0: //Down
 					if (emptyBox.tag_ < columns_ * (rows_ - 1)) target = manager_.SearchByTag(emptyBox.tag_ + columns_);
 					break;
@@ -325,47 +325,47 @@
 					break;
 				}
 
-				if (target === undefined) return;
-				var tempTag = emptyBox.tag_;
-				emptyBox.Translate(target.tag_ % columns_ * boxWidth_, Math.floor(target.tag_ / columns_) * boxHeight_, target.tag_);
-				target.Translate(tempTag % columns_ * boxWidth_, Math.floor(tempTag / columns_) * boxHeight_, tempTag);
+				if (target === undefined) return; //if the target object somehow dosen't exist exit the function
+				var tempTag = emptyBox.tag_; //temp hold for empty box tag
+				emptyBox.Translate(target.tag_ % columns_ * boxWidth_, Math.floor(target.tag_ / columns_) * boxHeight_, target.tag_); //move empty box
+				target.Translate(tempTag % columns_ * boxWidth_, Math.floor(tempTag / columns_) * boxHeight_, tempTag); //move target
 			}
 
 			function CheckWinCondition()
-			{
-				for (var i = 0; i < boxNum_; i++)
+			{//is the picture complete? 
+				for (var i = 0; i < columns_ * rows_ - 1; i++)
 				{
 					var object = manager_.SearchByID(i);
-					if (object.tag_ !== object.ID_) return false; 
+					if (object.tag_ !== object.ID_) return false; //if the objects ID dosen't = their Tag then they arn't in the right place - return false
 				}
-				return true;
+				return true; //if all objects ID = their Tag then return true
 			}
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			///Game Update
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			function Main()
-			{
-				var ctx = $('main_canvas').getContext("2d");
+			{//Main loop
+				var ctx = $('main_canvas').getContext("2d"); //canvas object
 
-				Update(delta_time());
-				Draw(ctx);
+				Update(delta_time()); //Update
+				Draw(ctx); //Draw
 
-				if (!mobile_) var t = setTimeout(Main, 0);
-				else var t = setTimeout(Main, 16);
+				if (!mobile_) var t = setTimeout(Main, 0); 
+				else var t = setTimeout(Main, 16); //run slower for mobile
 			}
 
 			function Update(delta_time)
 			{
-				manager_.Update(delta_time);
+				manager_.Update(delta_time); //update all objects
 			}
 
 			function Draw(ctx)
 			{
-				ctx.fillStyle = backgroundColor_;
-				ctx.fillRect(0, 0, imageWidth_, imageHeight_);
+				ctx.fillStyle = backgroundColor_; //background color
+				ctx.fillRect(0, 0, imageWidth_, imageHeight_); 
 
-				manager_.Draw(ctx);
+				manager_.Draw(ctx); //draw all objects
 			}
 
 			////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -374,22 +374,22 @@
 			function KeyDown(inputEvent)
 			{
 				if (inputEvent.key == "w" || inputEvent.key == "i")
-				{
+				{//Up
 					if (invert_controls_input.checked) Swap(2);
 					else Swap(0);
 				}
 				else if (inputEvent.key == "a" || inputEvent.key == "j")
-				{
+				{//Left
 					if (invert_controls_input.checked) Swap(3);
 					else Swap(1);
 				}
 				else if (inputEvent.key == "s" || inputEvent.key == "k")
-				{
+				{//Down
 					if (invert_controls_input.checked) Swap(0);
 					else Swap(2);
 				}
 				else if (inputEvent.key == "d" || inputEvent.key == "l")
-				{
+				{//Right
 					if (invert_controls_input.checked) Swap(1);
 					else Swap(3);
 				}
@@ -398,33 +398,33 @@
 				{
 					if (shift_) shift_ = false;
 					else shift_ = true;
-					manager_.SearchByID(-1).Display(shift_);
+					manager_.SearchByID(-1).Display(shift_); //show or hide hint
 				}
 
-				if (CheckWinCondition() && boxNum_ > 0) manager_.SearchByID(boxNum_).Display(true);
+				if (CheckWinCondition()) manager_.SearchByID(emptyBoxID_).Display(true); //check win condition
 			}
 
 			function TouchStart(event) 
 			{
-				event.preventDefault();
-				var touch = event.changedTouches[0];
-				touchX_ = touch.pageX;
-				touchY_ = touch.pageY;
+				event.preventDefault(); //prevent other input
+				var touch = event.changedTouches[0]; //grab touch event (touch start)
+				touchX_ = touch.pageX; //record touch event x
+				touchY_ = touch.pageY; //record touch event y
 			}
 
 			function TouchMove(event) 
 			{
-				event.preventDefault();
+				event.preventDefault(); //prevent other input
 			}
 
 			function TouchEnd(event)
 			{
-				event.preventDefault();
-				var touch = event.changedTouches[0];
-				var touchEndX_ = touch.pageX;
-				var touchEndY_ = touch.pageY;
-				var distanceX = touchX_ - touchEndX_;
-				var distanceY = touchY_ - touchEndY_;
+				event.preventDefault(); //prevent other input
+				var touch = event.changedTouches[0]; //grab touch event (touch end)
+				var touchEndX_ = touch.pageX; //record touch event x
+				var touchEndY_ = touch.pageY; //record touch event y
+				var distanceX = touchX_ - touchEndX_; //distance x between start and end
+				var distanceY = touchY_ - touchEndY_; //distance y between start and end
 
 				if (Math.abs(distanceX) >= Math.abs(distanceY))
 				{
@@ -453,7 +453,7 @@
 					}
 				}
 
-				if (CheckWinCondition() && boxNum_ > 0) manager_.SearchByID(boxNum_).Display(true);
+				if (CheckWinCondition()) manager_.SearchByID(emptyBoxID_).Display(true); //check win condition
 			}
 
 		</script>
