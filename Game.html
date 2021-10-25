@@ -8,7 +8,7 @@
 		<canvas id="main_canvas" width="0px" height="0px"></canvas>
 		<div id="1">
 			<input id="file_input" type="file" accept="image/png, image/jpeg" value="">
-			<input id="background_color_input" type="color" value="black">Background Color</input>
+			<input id="background_color_input" type="color" value="#000000">Background Color</input>
 		</div>
 		<br>
 		<div id="2">
@@ -19,13 +19,13 @@
 		<div id="3">
 			<input id="num_display_input" type="checkbox">Display Numbers?</input>
 			<input id="num_size_input" type="number" value="15">Number Size</input>
-			<input id="num_color_input" type="color" value="black">Number Color</input>
+			<input id="num_color_input" type="color" value="#000000">Number Color</input>
 		</div>
 		<br>
 		<div id="4">
 			<input id="outline_display_input" type="checkbox">Display Outlines?</input>
 			<input id="outline_size_input" type="number" value="2">Outline Size</input>
-			<input id="outline_color_input" type="color" value="black">Outline Color</input>
+			<input id="outline_color_input" type="color" value="#000000">Outline Color</input>
 		</div>
 		<br>
 		<div id="5">
@@ -53,7 +53,7 @@
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			var manager_ = new manager(); //Object Manager
 			var image_; //image object
-			var backgroundColor_ = "black"; //background color, set behind the picture
+			var backgroundColor_ = "#000000"; //background color, set behind the picture
 			var textureWidth_; //width of the texture, doesn't change
 			var textureHeight_; //height of the texture, doesn't change
 			var imageWidth_; //width of the image, after scaling
@@ -112,9 +112,9 @@
 				if (mobile_)
 				{
 					var touch = $("main_canvas");
-					canvas_input.addEventListener("touchstart", TouchStart, false);
-					canvas_input.addEventListener("touchmove", TouchMove, false);
-					canvas_input.addEventListener("touchend", TouchEnd, false);
+					touch.addEventListener("touchstart", TouchStart, false);
+					touch.addEventListener("touchmove", TouchMove, false);
+					touch.addEventListener("touchend", TouchEnd, false);
 					//touch.addEventListener("touchcancel", handleCancel, false);
 				}
 
