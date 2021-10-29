@@ -11,13 +11,20 @@
             Just click on the button below. <br>
         </p>
         <button id="slide_puzzle_button" type="button">Slide Puzzle</button>
+        <button id="block_break_button" type="button">Block Break</button>
         <script src="./functions.js"></script>
         <script type="text/javascript">
 
                 var slide_puzzle_button = $("slide_puzzle_button");
             	slide_puzzle_button.addEventListener("click", function()
                 {
-                    location.href = "Game.html";
+                    location.href = "Slide_Puzzle.html";
+                });
+
+                var block_break_button = $("block_break_button");
+            	block_break_button.addEventListener("click", function()
+                {
+                    location.href = "Block_Break.html";
                 });
         
         </script>
