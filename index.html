@@ -12,6 +12,7 @@
         </p>
         <button id="slide_puzzle_button" type="button">Slide Puzzle</button>
         <button id="block_break_button" type="button">Block Break</button>
+        <button id="kiara_minigame_button" type="button">Kiara Minigame</button>
         <script type="text/javascript">
 
                 function $(id)
@@ -29,6 +30,12 @@
             	block_break_button.addEventListener("click", function()
                 {
                     location.href = "./Block_Break/Block_Break.html";
+                });
+
+                var kiara_minigame_button = $("kiara_minigame_button");
+            	kiara_minigame_button.addEventListener("click", function()
+                {
+                    location.href = "./Kiara_Minigame/Kiara_Minigame.html";
                 });
         
         </script>
